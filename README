@@ -1,18 +1,13 @@
-Linux kernel
-============
+Demo #1: Linux w/ RISC-V IOMMU
 
-There are several guides for kernel developers and users. These guides can
-be rendered in a number of formats, like HTML and PDF. Please read
-Documentation/admin-guide/README.rst first.
+Build the Linux kernel with the RISC-V IOMMU driver:
+make -C linux ARCH=riscv CROSS_COMPILE=riscv64-linux-gnu- KBUILD_DEFCONFIG=defconfig O=build -j$(nproc) defconfig Image
+ℹ️ We provide a pre-built filesystem generated with Buildroot in linux/fs/cva6/. This FS is passed to the Kernel in the build configuration files, and contains a user-space application to perform DMA transfers within Linux
 
-In order to build the documentation, use ``make htmldocs`` or
-``make pdfdocs``.  The formatted documentation can also be read online at:
-
-    https://www.kernel.org/doc/html/latest/
-
-There are various text files in the Documentation/ subdirectory,
-several of them using the reStructuredText markup notation.
-
-Please read the Documentation/process/changes.rst file, as it contains the
-requirements for building and running the kernel, and information about
-the problems which may result by upgrading your kernel.
+Compile the device tree:
+cd linux/arch/riscv/boot/dts/cva6 && dtc cva6-ariane-minimal.dts > cva6-ariane-minimal.dtb
+Go back to the top directory of the repo and merge the DTB with the Linux image:
+cd ../../../../../.. && make -C linux/tools/lloader CROSS_COMPILE=riscv64-unknown-elf- ARCH=rv64 IMAGE=../../build/arch/riscv/boot/Image DTB=../../arch/riscv/boot/dts/cva6/cva6-ariane-minimal.dtb TARGET=linux-rv64-cva6
+Build OpenSBI and generate the payload firmware:
+make -C opensbi CROSS_COMPILE=riscv64-unknown-linux-gnu- PLATFORM=fpga/ariane FW_PAYLOAD=y FW_PAYLOAD_PATH=../linux/tools/lloader/linux-rv64-cva6.bin
+The output files (fw_payload.bin and fw_payload.elf) should be in opensbi/build/platform/fpga/ariane/firmware/
